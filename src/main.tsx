@@ -7,7 +7,7 @@ import "./index.css"
 import App from "./App.tsx"
 
 createRoot(document.getElementById("root")!).render(
-  <ThemeProvider defaultTheme="dark">
+  <ThemeProvider defaultTheme="light">
     <BrowserRouter>
     <Toaster/>
     <App />
