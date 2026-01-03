@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "@/components/theme-context"
 import {
   Dialog,
@@ -8,33 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { toast } from "sonner"
-import { Search, Shield, UserCheck, Edit2, Save, X } from "lucide-react"
-
-interface User {
-  id: number
-  email: string
-  role: string
-  departmentName?: string
-  status: "active" | "inactive"
-}
-
-const AVAILABLE_ROLES = [
-  { value: "ADMIN", label: "Administrator", color: "bg-red-500/20 text-red-300" },
-  { value: "FLEET_MANAGER", label: "Fleet Manager", color: "bg-blue-500/20 text-blue-300" },
-  { value: "MECHANIC", label: "Mechanic", color: "bg-purple-500/20 text-purple-300" },
-  { value: "DRIVER", label: "Driver", color: "bg-emerald-500/20 text-emerald-300" },
-]
+import { Search, Shield, Users, BarChart3 } from "lucide-react"
+import { DepartmentService } from "@/components/api/department.service"
+import type { DepartmentDetails } from "@/types/department.types"
 
 interface AdminUserManagementProps {
   open: boolean
@@ -48,93 +26,49 @@ export function AdminUserManagement({
   const { theme } = useTheme()
   const isDark = theme === "dark"
 
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      email: "john.doe@autonode.com",
-      role: "ADMIN",
-      departmentName: "Administration",
-      status: "active",
-    },
-    {
-      id: 2,
-      email: "jane.smith@autonode.com",
-      role: "FLEET_MANAGER",
-      departmentName: "Fleet Operations",
-      status: "active",
-    },
-    {
-      id: 3,
-      email: "mike.wilson@autonode.com",
-      role: "MECHANIC",
-      departmentName: "Diagnostics",
-      status: "active",
-    },
-    {
-      id: 4,
-      email: "sarah.johnson@autonode.com",
-      role: "DRIVER",
-      departmentName: "Driver Services",
-      status: "inactive",
-    },
-    {
-      id: 5,
-      email: "robert.brown@autonode.com",
-      role: "MECHANIC",
-      departmentName: "Diagnostics",
-      status: "active",
-    },
-  ])
-
+  const [departments, setDepartments] = useState<DepartmentDetails[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [editingUserId, setEditingUserId] = useState<number | null>(null)
-  const [editingRole, setEditingRole] = useState<string>("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedDepartment, setSelectedDepartment] = useState<DepartmentDetails | null>(null)
 
-  const filteredUsers = users.filter((user) =>
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    if (open) {
+      fetchDepartments()
+    }
+  }, [open])
+
+  const fetchDepartments = async () => {
+    setIsLoading(true)
+    try {
+      const data = await DepartmentService.getAllWithDetails()
+      setDepartments(data)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to fetch departments"
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const filteredDepartments = departments.filter((dept) =>
+    dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    dept.description.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleEditRole = (user: User) => {
-    setEditingUserId(user.id)
-    setEditingRole(user.role)
+  const handleDepartmentClick = (dept: DepartmentDetails) => {
+    setSelectedDepartment(dept)
   }
 
-  const handleSaveRole = async (userId: number) => {
-    if (!editingRole) {
-      toast.error("Please select a role")
-      return
+  const handleDone = () => {
+    if (selectedDepartment) {
+      const url = `/admin/department/users?departmentId=${selectedDepartment.id}&departmentName=${encodeURIComponent(selectedDepartment.name)}`
+      window.open(url, "_blank", "width=1200,height=800,resizable=yes,scrollbars=yes")
+      setSelectedDepartment(null)
+      setSearchQuery("")
+      onOpenChange(false)
+    } else {
+      toast.error("Please select a department first")
     }
-
-    setIsSubmitting(true)
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      setUsers(
-        users.map((user) =>
-          user.id === userId ? { ...user, role: editingRole } : user
-        )
-      )
-
-      toast.success("User role updated successfully")
-      setEditingUserId(null)
-      setEditingRole("")
-    } catch {
-      toast.error("Failed to update user role")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleCancelEdit = () => {
-    setEditingUserId(null)
-    setEditingRole("")
-  }
-
-  const getRoleColor = (role: string) => {
-    const roleConfig = AVAILABLE_ROLES.find((r) => r.value === role)
-    return roleConfig?.color || "bg-slate-500/20 text-slate-300"
   }
 
   return (
@@ -151,10 +85,10 @@ export function AdminUserManagement({
             <Shield className={isDark ? "text-blue-400" : "text-blue-600"} size={24} />
             <div>
               <DialogTitle className={isDark ? "text-white" : "text-slate-900"}>
-                Assign Roles & Access Control
+                Department Management
               </DialogTitle>
               <DialogDescription className={isDark ? "text-slate-200/70" : "text-slate-600"}>
-                Manage user roles and permissions across your organization
+                View departments and their user counts. Click to see more details.
               </DialogDescription>
             </div>
           </div>
@@ -171,7 +105,7 @@ export function AdminUserManagement({
                 size={18}
               />
               <Input
-                placeholder="Search users by email..."
+                placeholder="Search departments..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`pl-10 ${
@@ -183,168 +117,166 @@ export function AdminUserManagement({
             </div>
           </div>
 
-          {/* Horizontal Scrollable User Cards */}
-          <div className="flex flex-nowrap gap-4 overflow-x-auto pb-2">
-            {filteredUsers.length === 0 ? (
-              <div className="flex w-full items-center justify-center py-16">
-                <p className={isDark ? "text-slate-400" : "text-slate-500"}>
-                  No users found matching your search
-                </p>
-              </div>
-            ) : (
-              filteredUsers.map((user) => (
+          {/* Loading State */}
+          {isLoading ? (
+            <div className="flex h-40 items-center justify-center">
+              <p className={isDark ? "text-slate-400" : "text-slate-500"}>
+                Loading departments...
+              </p>
+            </div>
+          ) : filteredDepartments.length === 0 ? (
+            <div className="flex h-40 items-center justify-center">
+              <p className={isDark ? "text-slate-400" : "text-slate-500"}>
+                No departments found
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {filteredDepartments.map((dept) => (
                 <div
-                  key={user.id}
-                  className={`flex min-w-80 flex-col gap-4 rounded-lg border p-4 transition-all ${
+                  key={dept.id}
+                  onClick={() => handleDepartmentClick(dept)}
+                  className={`group cursor-pointer rounded-lg border p-4 transition-all duration-200 ${
                     isDark
-                      ? "border-white/10 bg-slate-900/50 hover:border-blue-500/30 hover:bg-slate-800/70"
-                      : "border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-white"
+                      ? "border-white/10 bg-slate-900/50 hover:border-blue-500/50 hover:bg-slate-800/70 hover:shadow-lg hover:shadow-blue-500/10"
+                      : "border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-white hover:shadow-lg hover:shadow-blue-400/20"
+                  } ${
+                    selectedDepartment?.id === dept.id
+                      ? isDark
+                        ? "border-blue-500 bg-slate-800 ring-1 ring-blue-500/50"
+                        : "border-blue-400 bg-blue-50 ring-1 ring-blue-400/50"
+                      : ""
                   }`}
                 >
-                  {/* User Info Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p
-                        className={`text-sm font-semibold ${
-                          isDark ? "text-slate-100" : "text-slate-900"
-                        }`}
-                      >
-                        {user.email}
-                      </p>
-                      <p
-                        className={`text-xs ${
-                          isDark ? "text-slate-400" : "text-slate-500"
-                        }`}
-                      >
-                        ID: {user.id}
-                      </p>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`${
-                        user.status === "active"
-                          ? isDark
-                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                            : "border-emerald-300 bg-emerald-100 text-emerald-700"
-                          : isDark
-                            ? "border-slate-500/30 bg-slate-500/10 text-slate-400"
-                            : "border-slate-300 bg-slate-100 text-slate-600"
+                  {/* Department Name */}
+                  <h3
+                    className={`text-lg font-semibold transition-colors ${
+                      isDark
+                        ? "text-white group-hover:text-blue-400"
+                        : "text-slate-900 group-hover:text-blue-600"
+                    }`}
+                  >
+                    {dept.name}
+                  </h3>
+
+                  {/* Description */}
+                  <p
+                    className={`mt-1 text-sm line-clamp-2 ${
+                      isDark ? "text-slate-400" : "text-slate-600"
+                    }`}
+                  >
+                    {dept.description}
+                  </p>
+
+                  {/* User Counts Grid */}
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+                    {/* Total Users */}
+                    <div
+                      className={`rounded-md p-2 ${
+                        isDark
+                          ? "bg-white/5"
+                          : "bg-slate-100"
                       }`}
                     >
-                      {user.status === "active" ? (
-                        <span className="flex items-center gap-1">
-                          <UserCheck size={12} />
-                          Active
-                        </span>
-                      ) : (
-                        <span>Inactive</span>
-                      )}
-                    </Badge>
-                  </div>
-
-                  {/* Department Info */}
-                  {user.departmentName && (
-                    <div>
-                      <p
-                        className={`text-xs font-medium ${
-                          isDark ? "text-slate-400" : "text-slate-600"
-                        }`}
-                      >
-                        Department
-                      </p>
-                      <p
-                        className={`text-sm ${
-                          isDark ? "text-slate-200" : "text-slate-800"
-                        }`}
-                      >
-                        {user.departmentName}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Role Management Section */}
-                  <div className="space-y-2 border-t border-white/10 pt-3">
-                    <Label className={`text-xs font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`}>
-                      Current Role
-                    </Label>
-
-                    {editingUserId === user.id ? (
-                      <div className="space-y-2">
-                        <Select value={editingRole} onValueChange={setEditingRole}>
-                          <SelectTrigger
-                            className={
-                              isDark
-                                ? "border-white/10 bg-slate-800 text-white"
-                                : "border-slate-200 bg-white text-slate-900"
-                            }
-                          >
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent
-                            className={isDark ? "bg-slate-900" : "bg-white"}
-                          >
-                            {AVAILABLE_ROLES.map((role) => (
-                              <SelectItem key={role.value} value={role.value}>
-                                {role.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleSaveRole(user.id)}
-                            disabled={isSubmitting}
-                            className={`flex-1 gap-1 ${
-                              isDark
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                                : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                            }`}
-                          >
-                            <Save size={14} />
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleCancelEdit}
-                            className={`flex-1 gap-1 ${
-                              isDark
-                                ? "border-white/20 text-slate-200 hover:bg-white/10"
-                                : "border-slate-300 text-slate-700 hover:bg-slate-100"
-                            }`}
-                          >
-                            <X size={14} />
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Badge className={getRoleColor(user.role)}>
-                          {AVAILABLE_ROLES.find((r) => r.value === user.role)?.label}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditRole(user)}
-                          className={`w-full gap-2 ${
-                            isDark
-                              ? "border-white/20 text-slate-200 hover:bg-white/10"
-                              : "border-slate-300 text-slate-700 hover:bg-slate-100"
+                      <div className="flex items-center gap-1">
+                        <Users size={14} className={isDark ? "text-blue-400" : "text-blue-600"} />
+                        <p
+                          className={`text-xs font-medium ${
+                            isDark ? "text-slate-400" : "text-slate-600"
                           }`}
                         >
-                          <Edit2 size={14} />
-                          Change Role
-                        </Button>
+                          Total
+                        </p>
                       </div>
-                    )}
+                      <p className={`text-xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+                        {dept.totalUserCount}
+                      </p>
+                    </div>
+
+                    {/* Fleet Managers */}
+                    <div
+                      className={`rounded-md p-2 ${
+                        isDark
+                          ? "bg-white/5"
+                          : "bg-slate-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <BarChart3 size={14} className={isDark ? "text-emerald-400" : "text-emerald-600"} />
+                        <p
+                          className={`text-xs font-medium ${
+                            isDark ? "text-slate-400" : "text-slate-600"
+                          }`}
+                        >
+                          Managers
+                        </p>
+                      </div>
+                      <p className={`text-xl font-bold ${isDark ? "text-emerald-300" : "text-emerald-600"}`}>
+                        {dept.fleetManagerCount}
+                      </p>
+                    </div>
+
+                    {/* Mechanics */}
+                    <div
+                      className={`rounded-md p-2 ${
+                        isDark
+                          ? "bg-white/5"
+                          : "bg-slate-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <BarChart3 size={14} className={isDark ? "text-amber-400" : "text-amber-600"} />
+                        <p
+                          className={`text-xs font-medium ${
+                            isDark ? "text-slate-400" : "text-slate-600"
+                          }`}
+                        >
+                          Mechanics
+                        </p>
+                      </div>
+                      <p className={`text-xl font-bold ${isDark ? "text-amber-300" : "text-amber-600"}`}>
+                        {dept.mechanicCount}
+                      </p>
+                    </div>
+
+                    {/* Drivers */}
+                    <div
+                      className={`rounded-md p-2 ${
+                        isDark
+                          ? "bg-white/5"
+                          : "bg-slate-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1">
+                        <BarChart3 size={14} className={isDark ? "text-purple-400" : "text-purple-600"} />
+                        <p
+                          className={`text-xs font-medium ${
+                            isDark ? "text-slate-400" : "text-slate-600"
+                          }`}
+                        >
+                          Drivers
+                        </p>
+                      </div>
+                      <p className={`text-xl font-bold ${isDark ? "text-purple-300" : "text-purple-600"}`}>
+                        {dept.driverCount}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Click Indicator */}
+                  <p
+                    className={`mt-3 text-xs font-medium transition-colors ${
+                      isDark
+                        ? "text-slate-500 group-hover:text-blue-400"
+                        : "text-slate-400 group-hover:text-blue-600"
+                    }`}
+                  >
+                    Click for details →
+                  </p>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -355,18 +287,31 @@ export function AdminUserManagement({
         >
           <div className="flex items-center justify-between">
             <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-              Showing {filteredUsers.length} of {users.length} users
+              {selectedDepartment
+                ? `Selected: ${selectedDepartment.name} (${selectedDepartment.totalUserCount} users)`
+                : `${filteredDepartments.length} of ${departments.length} departments`}
             </p>
-            <Button
-              onClick={() => onOpenChange(false)}
-              className={
-                isDark
-                  ? "bg-slate-700 text-white hover:bg-slate-600"
-                  : "bg-slate-700 text-white hover:bg-slate-600"
-              }
-            >
-              Done
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => window.open("/admin/users", "_blank", "width=1400,height=900,resizable=yes,scrollbars=yes")}
+                variant="outline"
+                className={`gap-2 ${
+                  isDark
+                    ? "border-white/20 text-slate-200 hover:bg-white/10"
+                    : "border-slate-300 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <Users size={16} />
+                Go to Management Panel
+              </Button>
+              <Button
+                onClick={handleDone}
+                className="gap-2 bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Shield size={16} />
+                Done
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

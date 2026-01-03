@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent, type FormEvent } from "react"
 import { toast } from "sonner"
+import { AuthService } from "@/components/api/auth.service"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -172,12 +173,11 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserProps) {
 
     setIsSubmitting(true)
     try {
-      // TODO: Call API to create user
-      // await AuthService.register({
-      //   email: formState.email,
-      //   password: formState.password,
-      //   role: formState.role,
-      // })
+      await AuthService.register({
+        email: formState.email,
+        password: formState.password,
+        role: formState.role as UserRole,
+      })
 
       toast.success(`User ${formState.email} created successfully`, {
         description: `Role: ${AVAILABLE_ROLES.find(r => r.value === formState.role)?.label}`

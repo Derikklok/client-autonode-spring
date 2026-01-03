@@ -6,6 +6,8 @@ import AdminDashboard from "@/pages/dashboard/Admin-dashboard";
 import DriverDashboard from "@/pages/dashboard/Driver-dashboard";
 import FleetManagerDashboard from "@/pages/dashboard/Fleet-manager-dashboard";
 import MechanicDashboard from "@/pages/dashboard/Mechanic-dashboard";
+import AdminUserPage from "@/pages/admin/Admin-user-page";
+import AdminUserPanel from "@/pages/admin/Admin-user-panel";
 
 const App = () => {
   return (
@@ -40,6 +42,22 @@ const App = () => {
         element={
           <ProtectedRoute allowedRoles={["DRIVER"]}>
             <DriverDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/department/users"
+        element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminUserPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminUserPanel />
           </ProtectedRoute>
         }
       />
