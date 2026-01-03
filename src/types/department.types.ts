@@ -7,11 +7,20 @@ export interface Department {
   createdAt: string
 }
 
-export interface DepartmentDetails extends Department {
+export interface DepartmentUserCounts {
   fleetManagerCount: number
   mechanicCount: number
   driverCount: number
   totalUserCount: number
+}
+
+export interface DepartmentDetails extends Department, DepartmentUserCounts {}
+
+export interface DepartmentUser {
+  id: number
+  email: string
+  role: string
+  departmentName: string
 }
 
 export interface CreateDepartmentRequest {

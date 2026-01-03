@@ -1,5 +1,5 @@
 import { httpClient } from "./httpClient";
-import type { Department,DepartmentDetails } from "@/types/department.types";
+import type { Department, DepartmentDetails, DepartmentUser } from "@/types/department.types";
 
 export interface CreateDepartmentPayload {
   name: string
@@ -17,6 +17,11 @@ export const DepartmentService = {
     return response.data
   },
 
+  getAllWithDetails: async (): Promise<DepartmentDetails[]> => {
+    const response = await httpClient.get<DepartmentDetails[]>("/api/department-details")
+    return response.data
+  },
+
   getById: async (id: number): Promise<Department> => {
     const response = await httpClient.get<Department>(`/api/departments/${id}`)
     return response.data
@@ -24,6 +29,13 @@ export const DepartmentService = {
 
   getDetails: async (id: number): Promise<DepartmentDetails> => {
     const response = await httpClient.get<DepartmentDetails>(`/api/department-details/${id}`)
+    return response.data
+  },
+
+  getUsersByDepartmentId: async (id: number): Promise<DepartmentUser[]> => {
+    const response = await httpClient.get<DepartmentUser[]>(
+      `/api/admin/departments/${id}/users`
+    )
     return response.data
   },
 
