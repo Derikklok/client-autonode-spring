@@ -624,7 +624,7 @@ function Getdepartment() {
 
     {/* Create/Edit Dialog */}
     <Dialog open={dialogState === "create" || dialogState === "edit"} onOpenChange={(open) => !open && handleCloseDialog()}>
-      <DialogContent className={isDark ? "bg-linear-to-br from-slate-950 via-slate-950 to-slate-900 border-white/10" : "bg-linear-to-br from-white via-slate-50 to-white border-slate-200"}>
+      <DialogContent className={`sm:max-w-md ${isDark ? "bg-linear-to-br from-slate-950 via-slate-950 to-slate-900 border-white/10" : "bg-linear-to-br from-white via-slate-50 to-white border-slate-200"}`}>
         <DialogHeader>
           <DialogTitle className={`text-xl font-bold transition-all ${isDark ? "bg-linear-to-r from-amber-400 to-amber-500 bg-clip-text text-transparent" : "bg-linear-to-r from-amber-600 to-amber-700 bg-clip-text text-transparent"}`}>
             {dialogState === "create" ? "Create Department" : "Edit Department"}
@@ -702,7 +702,7 @@ function Getdepartment() {
 
     {/* View Details Dialog */}
     <Dialog open={dialogState === "view"} onOpenChange={(open) => !open && handleCloseDialog()}>
-      <DialogContent className={`max-h-[90vh] overflow-hidden flex flex-col ${isDark ? "bg-slate-950 border-white/10" : "bg-white border-slate-200"}`}>
+      <DialogContent className={`sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col ${isDark ? "bg-slate-950 border-white/10" : "bg-white border-slate-200"}`}>
         <DialogHeader className="shrink-0">
           <DialogTitle className={`text-xl font-bold ${isDark ? "text-amber-400" : "text-amber-600"}`}>
             {selectedDepartment?.name}

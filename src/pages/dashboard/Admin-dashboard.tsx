@@ -27,6 +27,7 @@ import { CreateUserDialog } from "@/components/admin/Create-user"
 import GetDepartment from "@/components/admin/Get-department"
 import { CreateDepartmentDialog } from "@/components/admin/Create-departement-model"
 import { ViewAllDepartmentsDrawer } from "@/components/admin/View-all-departments-model"
+import { AdminUserManagement } from "@/components/admin/Admin-user-management"
 
 const serviceClusters = [
   {
@@ -136,6 +137,7 @@ function AdminDashboard() {
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false)
   const [viewAllDepartmentsOpen, setViewAllDepartmentsOpen] = useState(false)
+  const [assignRolesOpen, setAssignRolesOpen] = useState(false)
 
   const isDark = theme === "dark"
 
@@ -183,7 +185,9 @@ function AdminDashboard() {
                 <DropdownMenuItem onClick={() => setCreateUserOpen(true)}>
                   Create user account
                 </DropdownMenuItem>
-                <DropdownMenuItem>Assign roles</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAssignRolesOpen(true)}>
+                  Assign roles
+                </DropdownMenuItem>
                 <DropdownMenuItem>Assign to department</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Activate user</DropdownMenuItem>
@@ -485,6 +489,10 @@ function AdminDashboard() {
       <ViewAllDepartmentsDrawer
         open={viewAllDepartmentsOpen}
         onOpenChange={setViewAllDepartmentsOpen}
+      />
+      <AdminUserManagement
+        open={assignRolesOpen}
+        onOpenChange={setAssignRolesOpen}
       />
     </div>
   )

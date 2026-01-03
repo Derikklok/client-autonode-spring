@@ -198,7 +198,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`sm:max-w-106.25 ${isDark ? "" : ""}`}>
+      <DialogContent className={`sm:max-w-md ${isDark ? "" : ""}`}>
         <DialogHeader className="space-y-2">
           <DialogTitle className={isDark ? "text-2xl" : "text-2xl text-slate-900"}>Create user account</DialogTitle>
           <DialogDescription className={isDark ? "text-slate-400" : "text-slate-600"}>
