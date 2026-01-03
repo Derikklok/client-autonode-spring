@@ -129,8 +129,8 @@ function Getdepartment() {
     setIsSubmitting(true)
     try {
       const department = await DepartmentService.create({
-        name: formData.name,
-        description: formData.description,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
       })
       
       if (formData.image) {
@@ -141,8 +141,22 @@ function Getdepartment() {
       await fetchDepartments()
       handleCloseDialog()
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create department"
-      toast.error(message)
+      let errorMessage = "Failed to create department"
+      
+      // Check for specific error responses
+      if (err instanceof Error) {
+        const errorData = err as Error & { response?: { status: number; data: { message?: string } } }
+        if (errorData.response?.status === 409) {
+          errorMessage = errorData.response?.data?.message || "Department name already exists"
+        } else if (errorData.response?.data?.message) {
+          errorMessage = errorData.response.data.message
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      console.error("Create error details:", err)
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -154,14 +168,29 @@ function Getdepartment() {
       return
     }
 
+    // Check if there are actual changes
+    const nameChanged = formData.name.trim() !== selectedDepartment.name
+    const descriptionChanged = formData.description.trim() !== selectedDepartment.description
+    const hasImageChange = formData.image !== null
+
+    if (!nameChanged && !descriptionChanged && !hasImageChange) {
+      toast.info("No changes to update")
+      handleCloseDialog()
+      return
+    }
+
     setIsSubmitting(true)
     try {
-      await DepartmentService.update(selectedDepartment.id, {
-        name: formData.name,
-        description: formData.description,
-      })
+      // Only update if there are metadata changes
+      if (nameChanged || descriptionChanged) {
+        await DepartmentService.update(selectedDepartment.id, {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+        })
+      }
       
-      if (formData.image) {
+      // Update image separately if changed
+      if (hasImageChange && formData.image) {
         await DepartmentService.updateImage(selectedDepartment.id, formData.image)
       }
       
@@ -169,8 +198,22 @@ function Getdepartment() {
       await fetchDepartments()
       handleCloseDialog()
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update department"
-      toast.error(message)
+      let errorMessage = "Failed to update department"
+      
+      // Check for specific error responses
+      if (err instanceof Error) {
+        const errorData = err as Error & { response?: { status: number; data: { message?: string } } }
+        if (errorData.response?.status === 409) {
+          errorMessage = errorData.response?.data?.message || "Department name already exists or update conflict occurred"
+        } else if (errorData.response?.data?.message) {
+          errorMessage = errorData.response.data.message
+        } else {
+          errorMessage = err.message
+        }
+      }
+      
+      console.error("Update error details:", err)
+      toast.error(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
