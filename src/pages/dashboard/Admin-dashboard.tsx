@@ -307,7 +307,7 @@ function AdminDashboard() {
               <Button variant="outline" size="sm" className={isDark ? "backdrop-blur border-white/20 bg-white/5 text-slate-100" : "backdrop-blur border-slate-300 bg-slate-200/50 text-slate-900"}>
                 Schedule maintenance window
               </Button>
-              <Button size="sm" className={isDark ? "shadow-[0_12px_40px_-20px_rgba(56,189,248,0.65)]" : "bg-sky-600 text-white hover:bg-sky-700"}>
+              <Button size="sm" className={isDark ? "shadow-[0_12px_40px_-20px_rgba(56,189,248,0.65)]" : "bg-amber-600 text-white hover:bg-amber-700"}>
                 Broadcast status update
               </Button>
             </div>

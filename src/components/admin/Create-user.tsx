@@ -424,7 +424,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserProps) {
             <Button 
               type="submit" 
               disabled={isSubmitting || !formState.email || !formState.password || !formState.confirmPassword || !formState.role}
-              className={isDark ? "" : "bg-sky-600 text-white hover:bg-sky-700"}
+              className={isDark ? "" : "bg-amber-500 text-white hover:bg-amber-700"}
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
