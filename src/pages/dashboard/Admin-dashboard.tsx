@@ -24,6 +24,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/hooks/useAuth"
 import { CreateUserDialog } from "@/components/admin/Create-user"
+import GetDepartment from "@/components/admin/Get-department"
+import { CreateDepartmentDialog } from "@/components/admin/Create-departement-model"
 
 const serviceClusters = [
   {
@@ -131,6 +133,7 @@ function AdminDashboard() {
   const { logout } = useAuth()
   const { theme, setTheme } = useTheme()
   const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false)
 
   const isDark = theme === "dark"
 
@@ -195,7 +198,9 @@ function AdminDashboard() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuLabel>Department Operations</DropdownMenuLabel>
-                <DropdownMenuItem>Create department</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCreateDepartmentOpen(true)}>
+                  Create department
+                </DropdownMenuItem>
                 <DropdownMenuItem>Edit department</DropdownMenuItem>
                 <DropdownMenuItem className="text-amber-400">Delete department</DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -341,6 +346,10 @@ function AdminDashboard() {
       </header>
 
       <main className="mx-auto max-w-6xl space-y-12 px-6 py-12">
+        <section className="space-y-6 py-4">
+          <GetDepartment />
+        </section>
+
         <section>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="space-y-2">
@@ -465,6 +474,10 @@ function AdminDashboard() {
       </main>
 
       <CreateUserDialog open={createUserOpen} onOpenChange={setCreateUserOpen} />
+      <CreateDepartmentDialog 
+        open={createDepartmentOpen} 
+        onOpenChange={setCreateDepartmentOpen}
+      />
     </div>
   )
 }
