@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { CreateUserDialog } from "@/components/admin/Create-user"
 import GetDepartment from "@/components/admin/Get-department"
 import { CreateDepartmentDialog } from "@/components/admin/Create-departement-model"
+import { ViewAllDepartmentsDrawer } from "@/components/admin/View-all-departments-model"
 
 const serviceClusters = [
   {
@@ -134,6 +135,7 @@ function AdminDashboard() {
   const { theme, setTheme } = useTheme()
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [createDepartmentOpen, setCreateDepartmentOpen] = useState(false)
+  const [viewAllDepartmentsOpen, setViewAllDepartmentsOpen] = useState(false)
 
   const isDark = theme === "dark"
 
@@ -204,7 +206,9 @@ function AdminDashboard() {
                 <DropdownMenuItem>Edit department</DropdownMenuItem>
                 <DropdownMenuItem className="text-amber-400">Delete department</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>View all departments</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setViewAllDepartmentsOpen(true)}>
+                  View all departments
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -477,6 +481,10 @@ function AdminDashboard() {
       <CreateDepartmentDialog 
         open={createDepartmentOpen} 
         onOpenChange={setCreateDepartmentOpen}
+      />
+      <ViewAllDepartmentsDrawer
+        open={viewAllDepartmentsOpen}
+        onOpenChange={setViewAllDepartmentsOpen}
       />
     </div>
   )
