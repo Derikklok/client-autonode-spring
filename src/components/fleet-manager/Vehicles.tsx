@@ -45,12 +45,20 @@ import {
   X,
   Wrench,
   Package,
+  UserPlus,
 } from "lucide-react"
 import { FleetManagerService } from "@/components/api/fleetManager.service"
 import type { Vehicle as ApiVehicle } from "@/types/vehicle.types"
 import { VehicleEditForm } from "./VehicleEditForm"
 import { VehicleImageUploadModal } from "./VehicleImageUploadModal"
 import { VehicleCreateForm } from "./VehicleCreateForm"
+import { VehicleDriverAssignmentDialog } from "./VehicleDriverAssignmentDialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 // Transform API vehicle to local format
 const transformVehicle = (apiVehicle: ApiVehicle): Vehicle => {
@@ -137,6 +145,8 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
   const [imageUploadOpen, setImageUploadOpen] = useState(false)
   const [selectedVehicleForImageUpload, setSelectedVehicleForImageUpload] = useState<ApiVehicle | null>(null)
   const [createFormOpen, setCreateFormOpen] = useState(false)
+  const [driverAssignmentOpen, setDriverAssignmentOpen] = useState(false)
+  const [selectedVehicleForDriver, setSelectedVehicleForDriver] = useState<Vehicle | null>(null)
 
   // Fetch vehicles from API
   useEffect(() => {
@@ -222,6 +232,53 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
     // Add the new vehicle to the vehicles list
     const transformedVehicle = transformVehicle(newVehicle)
     setVehicles((prevVehicles) => [transformedVehicle, ...prevVehicles])
+  }
+
+  const handleOpenDriverAssignment = (vehicle: Vehicle) => {
+    setSelectedVehicleForDriver(vehicle)
+    setDriverAssignmentOpen(true)
+  }
+
+  const handleAssignDriver = (driverName: string) => {
+    if (!selectedVehicleForDriver) return
+    
+    // Update the vehicle in the list
+    setVehicles((prevVehicles) =>
+      prevVehicles.map((v) =>
+        v.id === selectedVehicleForDriver.id
+          ? { ...v, driver: driverName }
+          : v
+      )
+    )
+    
+    // Also update the details view if open
+    if (vehicleDetails && vehicleDetails.id === selectedVehicleForDriver.id) {
+      setVehicleDetails({
+        ...vehicleDetails,
+        driverName: driverName,
+      })
+    }
+  }
+
+  const handleRemoveDriver = () => {
+    if (!selectedVehicleForDriver) return
+    
+    // Update the vehicle in the list
+    setVehicles((prevVehicles) =>
+      prevVehicles.map((v) =>
+        v.id === selectedVehicleForDriver.id
+          ? { ...v, driver: "-" }
+          : v
+      )
+    )
+    
+    // Also update the details view if open
+    if (vehicleDetails && vehicleDetails.id === selectedVehicleForDriver.id) {
+      setVehicleDetails({
+        ...vehicleDetails,
+        driverName: null,
+      })
+    }
   }
 
   const filteredVehicles = vehicles.filter((vehicle) => {
@@ -505,7 +562,46 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                         </TableCell>
                         <TableCell>{vehicle.currentMileage.toLocaleString()} km</TableCell>
                         <TableCell>{vehicle.serviceMileage.toLocaleString()} km</TableCell>
-                        <TableCell>{vehicle.driver || "-"}</TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                {vehicle.driver === "-" ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleOpenDriverAssignment(vehicle)}
+                                    className={`gap-2 ${
+                                      isDark
+                                        ? "border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400"
+                                        : "border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-700"
+                                    }`}
+                                  >
+                                    <UserPlus className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleOpenDriverAssignment(vehicle)}
+                                    className={`gap-2 ${
+                                      isDark
+                                        ? "border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400"
+                                        : "border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700"
+                                    }`}
+                                  >
+                                    {vehicle.driver}
+                                  </Button>
+                                )}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {vehicle.driver === "-"
+                                  ? "Assign driver"
+                                  : "Manage driver assignment"}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
                         <TableCell className={isDark ? "text-slate-400" : "text-slate-600"}>
                           {vehicle.location}
                         </TableCell>
@@ -920,6 +1016,26 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
         onClose={() => setCreateFormOpen(false)}
         onSuccess={handleCreateVehicleSuccess}
       />
+
+      {/* Vehicle Driver Assignment Dialog */}
+      {selectedVehicleForDriver && (
+        <VehicleDriverAssignmentDialog
+          vehicle={{
+            plateNumber: selectedVehicleForDriver.licensePlate,
+            manufacturer: selectedVehicleForDriver.manufacturer,
+            model: selectedVehicleForDriver.model,
+          }}
+          isDark={isDark}
+          isOpen={driverAssignmentOpen}
+          currentDriver={selectedVehicleForDriver.driver === "-" ? null : selectedVehicleForDriver.driver}
+          onClose={() => {
+            setDriverAssignmentOpen(false)
+            setSelectedVehicleForDriver(null)
+          }}
+          onAssign={handleAssignDriver}
+          onRemove={handleRemoveDriver}
+        />
+      )}
     </div>
   )
 }
