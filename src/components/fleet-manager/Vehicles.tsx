@@ -43,6 +43,8 @@ import {
   CheckCircle,
   Clock,
   X,
+  Wrench,
+  Package,
 } from "lucide-react"
 import { FleetManagerService } from "@/components/api/fleetManager.service"
 import type { Vehicle as ApiVehicle } from "@/types/vehicle.types"
@@ -273,49 +275,117 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
     <div className="space-y-6">
       {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-        <Card className={isDark ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white"}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Active Vehicles</CardTitle>
+        {/* Active Vehicles Card */}
+        <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/20 ${
+          isDark 
+            ? "border-amber-500/20 bg-linear-to-br from-slate-900 via-slate-900 to-amber-950/30" 
+            : "border-amber-200/50 bg-linear-to-br from-white via-amber-50/30 to-amber-100/20"
+        }`}>
+          {/* Gradient accent */}
+          <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20 blur-xl ${isDark ? "bg-amber-500" : "bg-amber-400"}`} />
+          
+          <CardHeader className="relative z-10 pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>
+                Active Vehicles
+              </CardTitle>
+              <div className={`rounded-lg p-2 ${isDark ? "bg-amber-500/20" : "bg-amber-100"}`}>
+                <Truck className={`h-4 w-4 ${isDark ? "text-amber-400" : "text-amber-600"}`} />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeVehicles}</div>
-            <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+          <CardContent className="relative z-10">
+            <div className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+              {activeVehicles}
+            </div>
+            <p className={`text-xs font-medium ${isDark ? "text-amber-400/80" : "text-amber-700/80"}`}>
               Out on the road
             </p>
           </CardContent>
         </Card>
 
-        <Card className={isDark ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white"}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">In Service</CardTitle>
+        {/* In Service Card */}
+        <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/20 ${
+          isDark 
+            ? "border-amber-500/20 bg-linear-to-br from-slate-900 via-slate-900 to-amber-950/30" 
+            : "border-amber-200/50 bg-linear-to-br from-white via-amber-50/30 to-amber-100/20"
+        }`}>
+          {/* Gradient accent */}
+          <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20 blur-xl ${isDark ? "bg-amber-500" : "bg-amber-400"}`} />
+          
+          <CardHeader className="relative z-10 pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>
+                In Service
+              </CardTitle>
+              <div className={`rounded-lg p-2 ${isDark ? "bg-amber-500/20" : "bg-amber-100"}`}>
+                <Wrench className={`h-4 w-4 ${isDark ? "text-amber-400" : "text-amber-600"}`} />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">{maintenanceVehicles}</div>
-            <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+          <CardContent className="relative z-10">
+            <div className={`text-3xl font-bold ${isDark ? "text-amber-400" : "text-amber-600"}`}>
+              {maintenanceVehicles}
+            </div>
+            <p className={`text-xs font-medium ${isDark ? "text-amber-400/80" : "text-amber-700/80"}`}>
               Awaiting service
             </p>
           </CardContent>
         </Card>
 
-        <Card className={isDark ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white"}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Fleet</CardTitle>
+        {/* Total Fleet Card */}
+        <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/20 ${
+          isDark 
+            ? "border-amber-500/20 bg-linear-to-br from-slate-900 via-slate-900 to-amber-950/30" 
+            : "border-amber-200/50 bg-linear-to-br from-white via-amber-50/30 to-amber-100/20"
+        }`}>
+          {/* Gradient accent */}
+          <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20 blur-xl ${isDark ? "bg-amber-500" : "bg-amber-400"}`} />
+          
+          <CardHeader className="relative z-10 pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>
+                Total Fleet
+              </CardTitle>
+              <div className={`rounded-lg p-2 ${isDark ? "bg-amber-500/20" : "bg-amber-100"}`}>
+                <Package className={`h-4 w-4 ${isDark ? "text-amber-400" : "text-amber-600"}`} />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{vehicles.length}</div>
-            <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+          <CardContent className="relative z-10">
+            <div className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+              {vehicles.length}
+            </div>
+            <p className={`text-xs font-medium ${isDark ? "text-amber-400/80" : "text-amber-700/80"}`}>
               Vehicles registered
             </p>
           </CardContent>
         </Card>
 
-        <Card className={isDark ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white"}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Fleet Mileage</CardTitle>
+        {/* Fleet Mileage Card */}
+        <Card className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/20 ${
+          isDark 
+            ? "border-amber-500/20 bg-linear-to-br from-slate-900 via-slate-900 to-amber-950/30" 
+            : "border-amber-200/50 bg-linear-to-br from-white via-amber-50/30 to-amber-100/20"
+        }`}>
+          {/* Gradient accent */}
+          <div className={`absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20 blur-xl ${isDark ? "bg-amber-500" : "bg-amber-400"}`} />
+          
+          <CardHeader className="relative z-10 pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className={`text-sm font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>
+                Fleet Mileage
+              </CardTitle>
+              <div className={`rounded-lg p-2 ${isDark ? "bg-amber-500/20" : "bg-amber-100"}`}>
+                <Gauge className={`h-4 w-4 ${isDark ? "text-amber-400" : "text-amber-600"}`} />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(totalMileage / 1000).toFixed(0)}K</div>
-            <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+          <CardContent className="relative z-10">
+            <div className={`text-3xl font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+              {(totalMileage / 1000).toFixed(0)}K
+            </div>
+            <p className={`text-xs font-medium ${isDark ? "text-amber-400/80" : "text-amber-700/80"}`}>
               Total miles driven
             </p>
           </CardContent>
