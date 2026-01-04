@@ -42,9 +42,13 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  X,
 } from "lucide-react"
 import { FleetManagerService } from "@/components/api/fleetManager.service"
 import type { Vehicle as ApiVehicle } from "@/types/vehicle.types"
+import { VehicleEditForm } from "./VehicleEditForm"
+import { VehicleImageUploadModal } from "./VehicleImageUploadModal"
+import { VehicleCreateForm } from "./VehicleCreateForm"
 
 // Transform API vehicle to local format
 const transformVehicle = (apiVehicle: ApiVehicle): Vehicle => {
@@ -127,6 +131,10 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [vehicleDetails, setVehicleDetails] = useState<ApiVehicle | null>(null)
   const [detailsError, setDetailsError] = useState<string | null>(null)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [imageUploadOpen, setImageUploadOpen] = useState(false)
+  const [selectedVehicleForImageUpload, setSelectedVehicleForImageUpload] = useState<ApiVehicle | null>(null)
+  const [createFormOpen, setCreateFormOpen] = useState(false)
 
   // Fetch vehicles from API
   useEffect(() => {
@@ -168,6 +176,50 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
     setDetailsOpen(false)
     setVehicleDetails(null)
     setDetailsError(null)
+    setIsEditMode(false)
+  }
+
+  const handleEditSave = (updatedVehicle: ApiVehicle) => {
+    // Update the vehicles list with the updated vehicle
+    setVehicles((prevVehicles) =>
+      prevVehicles.map((v) => (v.id === updatedVehicle.id ? transformVehicle(updatedVehicle) : v))
+    )
+    // Update the details view with new data
+    setVehicleDetails(updatedVehicle)
+    // Exit edit mode after a short delay
+    setTimeout(() => {
+      setIsEditMode(false)
+    }, 1500)
+  }
+
+  const handleImageUploadSuccess = (updatedVehicle: ApiVehicle) => {
+    // Update the vehicles list with the updated vehicle
+    setVehicles((prevVehicles) =>
+      prevVehicles.map((v) => (v.id === updatedVehicle.id ? transformVehicle(updatedVehicle) : v))
+    )
+    // Update the details view with new data
+    setVehicleDetails(updatedVehicle)
+    setSelectedVehicleForImageUpload(updatedVehicle)
+  }
+
+  const handleOpenImageUploadModal = (vehicle: ApiVehicle) => {
+    setSelectedVehicleForImageUpload(vehicle)
+    setImageUploadOpen(true)
+  }
+
+  const handleOpenImageUploadForGallery = async (vehicleId: string) => {
+    try {
+      const apiVehicle = await FleetManagerService.getVehicleById(vehicleId)
+      handleOpenImageUploadModal(apiVehicle)
+    } catch {
+      console.error("Failed to fetch vehicle details for image upload")
+    }
+  }
+
+  const handleCreateVehicleSuccess = (newVehicle: ApiVehicle) => {
+    // Add the new vehicle to the vehicles list
+    const transformedVehicle = transformVehicle(newVehicle)
+    setVehicles((prevVehicles) => [transformedVehicle, ...prevVehicles])
   }
 
   const filteredVehicles = vehicles.filter((vehicle) => {
@@ -299,7 +351,11 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                   <Grid3X3 className="h-4 w-4" />
                 </Button>
               </div>
-              <Button size="sm" className="gap-2">
+              <Button 
+                size="sm" 
+                className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => setCreateFormOpen(true)}
+              >
                 <Plus className="h-4 w-4" />
                 Add Vehicle
               </Button>
@@ -517,8 +573,11 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                       </div>
 
                       {/* Action Button */}
-                      <Button className="w-full mt-2 gap-2">
-                        View Details
+                      <Button 
+                        onClick={() => handleOpenImageUploadForGallery(vehicle.id)}
+                        className="w-full mt-2 gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                      >
+                        Update Vehicle Image
                       </Button>
                     </div>
                   </div>
@@ -551,18 +610,35 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                   Complete vehicle information and specifications
                 </DialogDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseDetails}
-                className={isDark ? "text-slate-400 hover:bg-slate-800 hover:text-slate-200" : "text-slate-600 hover:bg-slate-100"}
-              >
-                {/* <X className="h-5 w-5" /> */}
-              </Button>
+              {!isEditMode && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloseDetails}
+                  className={isDark ? "text-slate-400 hover:bg-slate-800 hover:text-slate-200" : "text-slate-600 hover:bg-slate-100"}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           </DialogHeader>
 
-          {detailsLoading ? (
+          {isEditMode && vehicleDetails ? (
+            // Edit Mode
+            <div className={`${isDark ? "border-t border-slate-800" : "border-t border-slate-200"} pt-6`}>
+              <VehicleEditForm
+                vehicle={vehicleDetails}
+                isDark={isDark}
+                onSave={(updatedVehicle) => {
+                  handleEditSave(updatedVehicle)
+                }}
+                onCancel={() => setIsEditMode(false)}
+              />
+            </div>
+          ) : (
+            // View Mode
+            <>
+              {detailsLoading ? (
             <div className="py-12 text-center">
               <div className={`inline-flex items-center justify-center h-10 w-10 rounded-full ${isDark ? "bg-slate-800" : "bg-slate-100"}`}>
                 <div className={`h-8 w-8 rounded-full border-3 border-transparent ${isDark ? "border-t-amber-400" : "border-t-amber-600"} animate-spin`} />
@@ -733,9 +809,7 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
                 <Button
-                  onClick={() => {
-                    handleCloseDetails()
-                  }}
+                  onClick={() => setIsEditMode(true)}
                   className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-md hover:shadow-lg transition-all"
                 >
                   Edit Vehicle
@@ -749,9 +823,33 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                 </Button>
               </div>
             </div>
-          ) : null}
+              ) : null}
+            </>
+          )}
         </DialogContent>
       </Dialog>
+
+      {/* Vehicle Image Upload Modal */}
+      {selectedVehicleForImageUpload && (
+        <VehicleImageUploadModal
+          vehicle={selectedVehicleForImageUpload}
+          isDark={isDark}
+          isOpen={imageUploadOpen}
+          onClose={() => {
+            setImageUploadOpen(false)
+            setSelectedVehicleForImageUpload(null)
+          }}
+          onSuccess={handleImageUploadSuccess}
+        />
+      )}
+
+      {/* Vehicle Create Form Dialog */}
+      <VehicleCreateForm
+        isDark={isDark}
+        isOpen={createFormOpen}
+        onClose={() => setCreateFormOpen(false)}
+        onSuccess={handleCreateVehicleSuccess}
+      />
     </div>
   )
 }
