@@ -160,15 +160,16 @@ export function VehicleDriverAssignmentDialog({
             {currentDriver ? "Manage Driver Assignment" : "Assign Driver"}
           </DialogTitle>
           <DialogDescription className={`${isDark ? "text-slate-400" : "text-slate-600"}`}>
-            <div className="mt-2 space-y-2">
-              <p>
-                Vehicle: <span className="font-semibold text-slate-200">{vehicle.plateNumber}</span>
-              </p>
-              <p>
-                Model: <span className="font-semibold text-slate-200">{vehicle.manufacturer} {vehicle.model}</span>
-              </p>
-            </div>
+            Vehicle Details
           </DialogDescription>
+          <div className={`mt-2 space-y-2 ${isDark ? "text-slate-400" : "text-slate-600"} text-sm`}>
+            <div>
+              Vehicle: <span className="font-semibold text-slate-200">{vehicle.plateNumber}</span>
+            </div>
+            <div>
+              Model: <span className="font-semibold text-slate-200">{vehicle.manufacturer} {vehicle.model}</span>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className={`space-y-6 border-t ${isDark ? "border-slate-800" : "border-slate-200"} pt-6`}>
@@ -259,15 +260,14 @@ export function VehicleDriverAssignmentDialog({
                 </div>
               ) : (
                 filteredDrivers.map((driver) => (
-                  <button
+                  <div
                     key={driver.id}
                     onClick={() => !isAssigning && !isRemoving && handleAssignDriver(driver)}
-                    disabled={isAssigning || isRemoving}
-                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                    className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
                       isDark
                         ? "border-slate-700 bg-slate-800/50 hover:border-amber-500/40 hover:bg-slate-800/80 disabled:opacity-50"
                         : "border-slate-200 bg-slate-50 hover:border-amber-300 hover:bg-amber-50/50 disabled:opacity-50"
-                    }`}
+                    } ${isAssigning || isRemoving ? "opacity-50" : ""}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -306,12 +306,18 @@ export function VehicleDriverAssignmentDialog({
                         size="sm"
                         className="gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
                         disabled={isAssigning || isRemoving || driver.status !== "active"}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (!isAssigning && !isRemoving) {
+                            handleAssignDriver(driver)
+                          }
+                        }}
                       >
                         <UserPlus className="h-4 w-4" />
                         Assign
                       </Button>
                     </div>
-                  </button>
+                  </div>
                 ))
               )}
             </div>
