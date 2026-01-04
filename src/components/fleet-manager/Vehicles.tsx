@@ -42,7 +42,6 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  X,
 } from "lucide-react"
 import { FleetManagerService } from "@/components/api/fleetManager.service"
 import type { Vehicle as ApiVehicle } from "@/types/vehicle.types"
@@ -558,7 +557,7 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                 onClick={handleCloseDetails}
                 className={isDark ? "text-slate-400 hover:bg-slate-800 hover:text-slate-200" : "text-slate-600 hover:bg-slate-100"}
               >
-                <X className="h-5 w-5" />
+                {/* <X className="h-5 w-5" /> */}
               </Button>
             </div>
           </DialogHeader>
