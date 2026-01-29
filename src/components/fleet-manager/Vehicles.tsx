@@ -53,6 +53,7 @@ import { VehicleEditForm } from "./VehicleEditForm"
 import { VehicleImageUploadModal } from "./VehicleImageUploadModal"
 import { VehicleCreateForm } from "./VehicleCreateForm"
 import { VehicleDriverAssignmentDialog } from "./VehicleDriverAssignmentDialog"
+import { VehicleRemoveDriverDialog } from "./VehicleRemoveDriverDialog"
 import {
   Tooltip,
   TooltipContent,
@@ -79,6 +80,7 @@ const transformVehicle = (apiVehicle: ApiVehicle): Vehicle => {
     currentMileage: apiVehicle.currentMileage,
     serviceMileage: apiVehicle.serviceMileage,
     driverId: apiVehicle.driverId,
+    driverEmail: apiVehicle.driverEmail,
     driver: apiVehicle.driverName || "-",
     location: apiVehicle.departmentName,
     imageUrl: apiVehicle.imageUrl,
@@ -97,6 +99,7 @@ interface Vehicle {
   currentMileage: number
   serviceMileage: number
   driverId: number | null
+  driverEmail: string | null
   driver: string
   location: string
   imageUrl?: string
@@ -148,6 +151,7 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
   const [selectedVehicleForImageUpload, setSelectedVehicleForImageUpload] = useState<ApiVehicle | null>(null)
   const [createFormOpen, setCreateFormOpen] = useState(false)
   const [driverAssignmentOpen, setDriverAssignmentOpen] = useState(false)
+  const [driverRemovalOpen, setDriverRemovalOpen] = useState(false)
   const [selectedVehicleForDriver, setSelectedVehicleForDriver] = useState<Vehicle | null>(null)
 
   // Fetch vehicles from API
@@ -238,17 +242,23 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
 
   const handleOpenDriverAssignment = (vehicle: Vehicle) => {
     setSelectedVehicleForDriver(vehicle)
-    setDriverAssignmentOpen(true)
+    
+    // If vehicle has a driver, open the remove dialog, otherwise open the assign dialog
+    if (vehicle.driverId === null) {
+      setDriverAssignmentOpen(true)
+    } else {
+      setDriverRemovalOpen(true)
+    }
   }
 
-  const handleAssignDriver = (driverName: string) => {
+  const handleAssignDriver = (driverId: number, driverEmail: string) => {
     if (!selectedVehicleForDriver) return
     
     // Update the vehicle in the list
     setVehicles((prevVehicles) =>
       prevVehicles.map((v) =>
         v.id === selectedVehicleForDriver.id
-          ? { ...v, driver: driverName }
+          ? { ...v, driverId: driverId, driverEmail: driverEmail }
           : v
       )
     )
@@ -257,7 +267,8 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
     if (vehicleDetails && vehicleDetails.id === selectedVehicleForDriver.id) {
       setVehicleDetails({
         ...vehicleDetails,
-        driverName: driverName,
+        driverId: driverId,
+        driverEmail: driverEmail,
       })
     }
   }
@@ -269,7 +280,7 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
     setVehicles((prevVehicles) =>
       prevVehicles.map((v) =>
         v.id === selectedVehicleForDriver.id
-          ? { ...v, driver: "-" }
+          ? { ...v, driver: "-", driverId: null, driverEmail: null }
           : v
       )
     )
@@ -278,7 +289,9 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
     if (vehicleDetails && vehicleDetails.id === selectedVehicleForDriver.id) {
       setVehicleDetails({
         ...vehicleDetails,
+        driverId: null,
         driverName: null,
+        driverEmail: null,
       })
     }
   }
@@ -586,13 +599,13 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleOpenDriverAssignment(vehicle)}
-                                    className={`gap-2 ${
+                                    className={`gap-2 text-xs ${
                                       isDark
                                         ? "border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400"
                                         : "border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700"
                                     }`}
                                   >
-                                    {vehicle.driver}
+                                    {vehicle.driverEmail}
                                   </Button>
                                 )}
                               </TooltipTrigger>
@@ -1036,6 +1049,26 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
             setSelectedVehicleForDriver(null)
           }}
           onAssign={handleAssignDriver}
+          onRemove={handleRemoveDriver}
+        />
+      )}
+
+      {/* Vehicle Remove Driver Dialog */}
+      {selectedVehicleForDriver && (
+        <VehicleRemoveDriverDialog
+          vehicle={{
+            id: selectedVehicleForDriver.id,
+            plateNumber: selectedVehicleForDriver.licensePlate,
+            manufacturer: selectedVehicleForDriver.manufacturer,
+            model: selectedVehicleForDriver.model,
+          }}
+          isDark={isDark}
+          isOpen={driverRemovalOpen}
+          currentDriverEmail={selectedVehicleForDriver.driverEmail}
+          onClose={() => {
+            setDriverRemovalOpen(false)
+            setSelectedVehicleForDriver(null)
+          }}
           onRemove={handleRemoveDriver}
         />
       )}

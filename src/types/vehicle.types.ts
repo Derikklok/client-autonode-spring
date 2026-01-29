@@ -12,8 +12,9 @@ export interface Vehicle {
   serviceMileage: number
   status: VehicleStatus
   departmentName: string
-  driverId: string | null
+  driverId: number | null
   driverName: string | null
+  driverEmail: string | null
   createdAt: string
 }
 

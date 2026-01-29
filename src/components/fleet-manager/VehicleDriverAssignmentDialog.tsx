@@ -20,7 +20,7 @@ interface VehicleDriverAssignmentDialogProps {
   isOpen: boolean
   currentDriver: string | null
   onClose: () => void
-  onAssign?: (driverName: string) => void
+  onAssign?: (driverId: number, driverEmail: string) => void
   onRemove?: () => void
 }
 
@@ -94,10 +94,10 @@ export function VehicleDriverAssignmentDialog({
       // Call the actual API to assign driver to vehicle
       await FleetManagerDriverService.assignDriverToVehicle(vehicle.id, driver.id)
       
-      const driverName = driver.fullName || driver.email
-      setSuccessMessage(`${driverName} assigned successfully`)
+      const driverEmail = driver.email
+      setSuccessMessage(`${driver.fullName || driverEmail} assigned successfully`)
       setTimeout(() => {
-        onAssign?.(driverName)
+        onAssign?.(driver.id, driverEmail)
         handleClose()
       }, 1200)
     } catch (error) {
