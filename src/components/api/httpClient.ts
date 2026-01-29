@@ -8,10 +8,12 @@ export const httpClient = axios.create({
   timeout: 10000,
 })
 
-// Attach token automatically
+// Attach token automatically (except for login/register endpoints)
 httpClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token")
-  if (token) {
+  const isAuthEndpoint = config.url?.includes("/auth/login") || config.url?.includes("/auth/register")
+  
+  if (token && !isAuthEndpoint) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
