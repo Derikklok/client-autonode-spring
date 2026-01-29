@@ -3,6 +3,7 @@ import type {
   CreateVehicleRequest,
   UpdateVehicleRequest,
   Vehicle,
+  AvailableDriver,
 } from "@/types/vehicle.types";
 
 export const FleetManagerService = {
@@ -76,6 +77,32 @@ export const FleetManagerService = {
       }
     );
 
+    return response.data;
+  },
+};
+
+export const FleetManagerDriverService = {
+  getAvailableDrivers: async (): Promise<AvailableDriver[]> => {
+    const response = await httpClient.get<AvailableDriver[]>(
+      "/api/fleet-manager/vehicles/drivers/available"
+    );
+    return response.data;
+  },
+
+  assignDriverToVehicle: async (
+    vehicleId: string,
+    driverId: number
+  ): Promise<Vehicle> => {
+    const response = await httpClient.post<Vehicle>(
+      `/api/fleet-manager/vehicles/${vehicleId}/driver?driverId=${driverId}`
+    );
+    return response.data;
+  },
+
+  removeDriverFromVehicle: async (vehicleId: string): Promise<Vehicle> => {
+    const response = await httpClient.delete<Vehicle>(
+      `/api/fleet-manager/vehicles/${vehicleId}/driver`
+    );
     return response.data;
   },
 };

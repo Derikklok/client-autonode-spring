@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { toast } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -10,69 +11,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { AlertCircle, CheckCircle, Users, UserPlus, Trash2, Shield } from "lucide-react"
-
-interface Driver {
-  id: string
-  name: string
-  email: string
-  phone: string
-  role: "driver" | "mechanic" | "manager"
-  status: "active" | "inactive" | "on-leave"
-  licenseNumber: string
-  assignedVehicles: number
-  rating: number
-}
-
-// Mock drivers data - replace with actual API call
-const mockDrivers: Driver[] = [
-  {
-    id: "1",
-    name: "John Anderson",
-    email: "john.anderson@autonodefl.com",
-    phone: "+1 (713) 555-0142",
-    role: "driver",
-    status: "active",
-    licenseNumber: "TX-DL-2024-001",
-    assignedVehicles: 1,
-    rating: 4.8,
-  },
-  {
-    id: "2",
-    name: "Maria Lopez",
-    email: "maria.lopez@autonodefl.com",
-    phone: "+1 (214) 555-0167",
-    role: "driver",
-    status: "active",
-    licenseNumber: "TX-DL-2024-002",
-    assignedVehicles: 1,
-    rating: 4.9,
-  },
-  {
-    id: "3",
-    name: "James Wilson",
-    email: "james.wilson@autonodefl.com",
-    phone: "+1 (512) 555-0198",
-    role: "driver",
-    status: "active",
-    licenseNumber: "TX-DL-2024-003",
-    assignedVehicles: 1,
-    rating: 4.7,
-  },
-  {
-    id: "4",
-    name: "Michael Thompson",
-    email: "michael.thompson@autonodefl.com",
-    phone: "+1 (832) 555-0167",
-    role: "driver",
-    status: "on-leave",
-    licenseNumber: "TX-DL-2024-005",
-    assignedVehicles: 0,
-    rating: 4.5,
-  },
-]
+import { FleetManagerDriverService } from "@/components/api/fleetManager.service"
+import type { AvailableDriver } from "@/types/vehicle.types"
 
 interface VehicleDriverAssignmentDialogProps {
-  vehicle: { plateNumber: string; manufacturer: string; model: string }
+  vehicle: { id: string; plateNumber: string; manufacturer: string; model: string }
   isDark: boolean
   isOpen: boolean
   currentDriver: string | null
@@ -94,29 +37,85 @@ export function VehicleDriverAssignmentDialog({
   const [isAssigning, setIsAssigning] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [availableDrivers, setAvailableDrivers] = useState<AvailableDriver[]>([])
+  const [isLoadingDrivers, setIsLoadingDrivers] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
-  const filteredDrivers = mockDrivers.filter((driver) => {
+  useEffect(() => {
+    if (isOpen) {
+      // Validate vehicle ID on dialog open
+      if (!vehicle.id) {
+        console.error("Dialog opened without vehicle ID:", vehicle)
+        toast.error("Invalid vehicle data. Please try again.")
+        onClose()
+        return
+      }
+      fetchAvailableDrivers()
+    }
+  }, [isOpen, vehicle, onClose])
+
+  const fetchAvailableDrivers = async () => {
+    try {
+      setIsLoadingDrivers(true)
+      setLoadError(null)
+      const drivers = await FleetManagerDriverService.getAvailableDrivers()
+      setAvailableDrivers(drivers)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load available drivers"
+      setLoadError(message)
+      toast.error(message)
+    } finally {
+      setIsLoadingDrivers(false)
+    }
+  }
+
+  const filteredDrivers = availableDrivers.filter((driver) => {
+    const searchLower = searchTerm.toLowerCase()
+    const driverName = driver.fullName?.toLowerCase() || ""
+    const driverEmail = driver.email.toLowerCase()
+    
     return (
-      driver.role === "driver" &&
-      (driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        driver.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        driver.licenseNumber.toLowerCase().includes(searchTerm.toLowerCase()))
+      driver.available &&
+      (driverName.includes(searchLower) || driverEmail.includes(searchLower))
     )
   })
 
-  const handleAssignDriver = async (driver: Driver) => {
+  const handleAssignDriver = async (driver: AvailableDriver) => {
     try {
+      // Validate vehicle ID exists
+      if (!vehicle.id) {
+        const errorMsg = "Vehicle ID is missing. Please refresh and try again."
+        toast.error(errorMsg)
+        console.error(errorMsg, vehicle)
+        return
+      }
+
       setIsAssigning(true)
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      // Call the actual API to assign driver to vehicle
+      await FleetManagerDriverService.assignDriverToVehicle(vehicle.id, driver.id)
       
-      setSuccessMessage(`${driver.name} assigned successfully`)
+      const driverName = driver.fullName || driver.email
+      setSuccessMessage(`${driverName} assigned successfully`)
       setTimeout(() => {
-        onAssign?.(driver.name)
+        onAssign?.(driverName)
         handleClose()
       }, 1200)
     } catch (error) {
-      console.error("Error assigning driver:", error)
+      let message = "Error assigning driver"
+      
+      // Handle specific error responses
+      if (error instanceof Error) {
+        const errorData = error as Error & { response?: { status: number; data: { message?: string } } }
+        
+        if (errorData.response?.status === 409) {
+          message = errorData.response?.data?.message || "Driver is already assigned to another vehicle"
+        } else {
+          message = error.message
+        }
+      }
+      
+      console.error("Assignment error:", error)
+      toast.error(message)
     } finally {
       setIsAssigning(false)
     }
@@ -125,8 +124,8 @@ export function VehicleDriverAssignmentDialog({
   const handleRemoveDriver = async () => {
     try {
       setIsRemoving(true)
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 800))
+      // Call the actual API to remove driver from vehicle
+      await FleetManagerDriverService.removeDriverFromVehicle(vehicle.id)
       
       setSuccessMessage("Driver removed successfully")
       setTimeout(() => {
@@ -134,7 +133,8 @@ export function VehicleDriverAssignmentDialog({
         handleClose()
       }, 1200)
     } catch (error) {
-      console.error("Error removing driver:", error)
+      const message = error instanceof Error ? error.message : "Error removing driver"
+      toast.error(message)
     } finally {
       setIsRemoving(false)
     }
@@ -146,7 +146,7 @@ export function VehicleDriverAssignmentDialog({
     onClose()
   }
 
-  const activeDrivers = mockDrivers.filter((d) => d.role === "driver" && d.status === "active").length
+  const availableCount = availableDrivers.filter((d) => d.available).length
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -225,14 +225,15 @@ export function VehicleDriverAssignmentDialog({
             <div>
               <p className={`text-sm font-semibold mb-3 ${isDark ? "text-slate-300" : "text-slate-700"}`}>
                 <Users className="h-4 w-4 inline mr-2" />
-                Available Drivers ({activeDrivers})
+                Available Drivers ({availableCount})
               </p>
 
               {/* Search Input */}
               <Input
-                placeholder="Search by name, email, or license number..."
+                placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={isLoadingDrivers}
                 className={`mb-4 ${
                   isDark
                     ? "border-slate-700 bg-slate-800 text-white placeholder:text-slate-500"
@@ -247,7 +248,24 @@ export function VehicleDriverAssignmentDialog({
                 isDark ? "border border-slate-700 rounded-lg p-2" : "border border-slate-200 rounded-lg p-2"
               }`}
             >
-              {filteredDrivers.length === 0 ? (
+              {isLoadingDrivers ? (
+                <div className="p-8 text-center">
+                  <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                    Loading available drivers...
+                  </p>
+                </div>
+              ) : loadError ? (
+                <div className="p-8 text-center">
+                  <AlertCircle
+                    className={`h-8 w-8 mx-auto mb-2 ${
+                      isDark ? "text-red-500" : "text-red-400"
+                    }`}
+                  />
+                  <p className={`text-sm ${isDark ? "text-red-400" : "text-red-600"}`}>
+                    {loadError}
+                  </p>
+                </div>
+              ) : filteredDrivers.length === 0 ? (
                 <div className="p-8 text-center">
                   <AlertCircle
                     className={`h-8 w-8 mx-auto mb-2 opacity-50 ${
@@ -255,14 +273,13 @@ export function VehicleDriverAssignmentDialog({
                     }`}
                   />
                   <p className={`text-sm ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                    No drivers found matching your search
+                    {searchTerm ? "No drivers found matching your search" : "No available drivers at the moment"}
                   </p>
                 </div>
               ) : (
                 filteredDrivers.map((driver) => (
                   <div
                     key={driver.id}
-                    onClick={() => !isAssigning && !isRemoving && handleAssignDriver(driver)}
                     className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
                       isDark
                         ? "border-slate-700 bg-slate-800/50 hover:border-amber-500/40 hover:bg-slate-800/80 disabled:opacity-50"
@@ -272,7 +289,7 @@ export function VehicleDriverAssignmentDialog({
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <p className={`font-semibold ${isDark ? "text-slate-100" : "text-slate-900"}`}>
-                          {driver.name}
+                          {driver.fullName || "Unnamed Driver"}
                         </p>
                         <div className="flex flex-wrap gap-2 mt-2 items-center">
                           <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-600"}`}>
@@ -281,34 +298,26 @@ export function VehicleDriverAssignmentDialog({
                           <Badge
                             variant="outline"
                             className={`text-xs ${
-                              driver.status === "active"
+                              driver.available
                                 ? isDark
                                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                                   : "bg-emerald-50 text-emerald-700 border-emerald-200"
                                 : isDark
-                                  ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                                  ? "bg-red-500/10 text-red-400 border-red-500/30"
+                                  : "bg-red-50 text-red-700 border-red-200"
                             }`}
                           >
-                            {driver.status === "active" ? "Active" : "On Leave"}
+                            {driver.available ? "Available" : "Unavailable"}
                           </Badge>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-3">
-                          <span className={`text-xs font-medium ${isDark ? "text-slate-500" : "text-slate-600"}`}>
-                            License: {driver.licenseNumber}
-                          </span>
-                          <span className={`text-xs font-medium ${isDark ? "text-slate-500" : "text-slate-600"}`}>
-                            Rating: ⭐ {driver.rating}
-                          </span>
                         </div>
                       </div>
                       <Button
                         size="sm"
                         className="gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
-                        disabled={isAssigning || isRemoving || driver.status !== "active"}
+                        disabled={isAssigning || isRemoving || !driver.available}
                         onClick={(e) => {
                           e.stopPropagation()
-                          if (!isAssigning && !isRemoving) {
+                          if (!isAssigning && !isRemoving && driver.available) {
                             handleAssignDriver(driver)
                           }
                         }}
@@ -332,7 +341,7 @@ export function VehicleDriverAssignmentDialog({
             }`}
           >
             <p className={`text-sm ${isDark ? "text-blue-300" : "text-blue-700"}`}>
-              💡 <span className="font-medium">Tip:</span> You can assign an active driver to this vehicle. Only drivers with "Active" status can be assigned.
+              💡 <span className="font-medium">Tip:</span> You can assign an available driver to this vehicle. Only drivers with "Available" status can be assigned.
             </p>
           </div>
         </div>

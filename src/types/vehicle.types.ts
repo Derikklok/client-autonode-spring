@@ -38,3 +38,10 @@ export interface CreateVehicleRequest {
   image: File
 }
 
+export interface AvailableDriver {
+  id: number
+  fullName: string | null
+  email: string
+  available: boolean
+}
+

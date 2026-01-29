@@ -78,6 +78,7 @@ const transformVehicle = (apiVehicle: ApiVehicle): Vehicle => {
     status: statusMap[apiVehicle.status] || "idle",
     currentMileage: apiVehicle.currentMileage,
     serviceMileage: apiVehicle.serviceMileage,
+    driverId: apiVehicle.driverId,
     driver: apiVehicle.driverName || "-",
     location: apiVehicle.departmentName,
     imageUrl: apiVehicle.imageUrl,
@@ -95,6 +96,7 @@ interface Vehicle {
   status: "active" | "maintenance" | "idle"
   currentMileage: number
   serviceMileage: number
+  driverId: number | null
   driver: string
   location: string
   imageUrl?: string
@@ -566,7 +568,7 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                {vehicle.driver === "-" ? (
+                                {vehicle.driverId === null ? (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -595,7 +597,7 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
                                 )}
                               </TooltipTrigger>
                               <TooltipContent>
-                                {vehicle.driver === "-"
+                                {vehicle.driverId === null
                                   ? "Assign driver"
                                   : "Manage driver assignment"}
                               </TooltipContent>
@@ -1021,6 +1023,7 @@ export function FleetManagerVehicles({ isDark }: { isDark: boolean }) {
       {selectedVehicleForDriver && (
         <VehicleDriverAssignmentDialog
           vehicle={{
+            id: selectedVehicleForDriver.id,
             plateNumber: selectedVehicleForDriver.licensePlate,
             manufacturer: selectedVehicleForDriver.manufacturer,
             model: selectedVehicleForDriver.model,
