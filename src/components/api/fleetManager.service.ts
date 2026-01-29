@@ -5,6 +5,7 @@ import type {
   Vehicle,
   AvailableDriver,
 } from "@/types/vehicle.types";
+import type { Hub, CreateHubRequest, UpdateHubRequest } from "@/types/hub.types";
 
 export const FleetManagerService = {
   getVehicles: async (): Promise<Vehicle[]> => {
@@ -102,6 +103,80 @@ export const FleetManagerDriverService = {
   removeDriverFromVehicle: async (vehicleId: string): Promise<Vehicle> => {
     const response = await httpClient.delete<Vehicle>(
       `/api/fleet-manager/vehicles/${vehicleId}/driver`
+    );
+    return response.data;
+  },
+};
+
+export const FleetManagerHubService = {
+  getHubs: async (): Promise<Hub[]> => {
+    const response = await httpClient.get<Hub[]>(
+      "/api/fleet-manager/hubs"
+    );
+    return response.data;
+  },
+
+  getHubById: async (hubId: string): Promise<Hub> => {
+    const response = await httpClient.get<Hub>(
+      `/api/fleet-manager/hubs/${hubId}`
+    );
+    return response.data;
+  },
+
+  createHub: async (payload: CreateHubRequest): Promise<Hub> => {
+    const response = await httpClient.post<Hub>(
+      "/api/fleet-manager/hubs",
+      payload
+    );
+    return response.data;
+  },
+
+  updateHub: async (
+    hubId: string,
+    payload: UpdateHubRequest
+  ): Promise<Hub> => {
+    const response = await httpClient.put<Hub>(
+      `/api/fleet-manager/hubs/${hubId}`,
+      payload
+    );
+    return response.data;
+  },
+
+  deleteHub: async (hubId: string): Promise<void> => {
+    await httpClient.delete(`/api/fleet-manager/hubs/${hubId}`);
+  },
+
+  getVehiclesWithoutHubs: async (): Promise<Vehicle[]> => {
+    const response = await httpClient.get<Vehicle[]>(
+      "/api/fleet-manager/hubs/vehicles-without-hubs"
+    );
+    return response.data;
+  },
+
+  getAvailableHubs: async (): Promise<Hub[]> => {
+    const response = await httpClient.get<Hub[]>(
+      "/api/fleet-manager/hubs/available"
+    );
+    return response.data;
+  },
+
+  assignHubToVehicle: async (
+    hubId: string,
+    vehicleId: string
+  ): Promise<Hub> => {
+    const response = await httpClient.post<Hub>(
+      "/api/fleet-manager/hubs/assign",
+      {
+        hubId,
+        vehicleId,
+      }
+    );
+    return response.data;
+  },
+
+  unassignHubFromVehicle: async (hubId: string): Promise<Hub> => {
+    const response = await httpClient.delete<Hub>(
+      `/api/fleet-manager/hubs/${hubId}/vehicle`
     );
     return response.data;
   },
