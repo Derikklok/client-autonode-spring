@@ -37,9 +37,17 @@ import {
   Search,
   RefreshCw,
   Loader,
+  Plus,
+  Clock,
+  CheckCheckIcon,
+  Users,
+  Package,
 } from "lucide-react"
 import { FleetManagerMonitoringService } from "@/components/api/monitoring.service"
+import { FleetManagerServiceJobService } from "@/components/api/serviceJob.service"
+import { ServiceJobCreationDialog } from "./ServiceJobCreationDialog"
 import type { MonitoringError, ErrorSeverity } from "@/types/monitoring.types"
+import type { ServiceJob } from "@/types/serviceJob.types"
 
 
 export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
@@ -53,6 +61,13 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
   const [pageSize] = useState(20)
   const [totalPages, setTotalPages] = useState(0)
   const [totalElements, setTotalElements] = useState(0)
+  const [serviceJobDialogOpen, setServiceJobDialogOpen] = useState(false)
+  const [selectedErrorForJob, setSelectedErrorForJob] = useState<MonitoringError | null>(null)
+  
+  // Service Jobs state
+  const [ongoingJobs, setOngoingJobs] = useState<ServiceJob[]>([])
+  const [completedJobs, setCompletedJobs] = useState<ServiceJob[]>([])
+  const [jobsLoading, setJobsLoading] = useState(false)
 
   const fetchErrors = async () => {
     try {
@@ -76,8 +91,25 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
 
   useEffect(() => {
     fetchErrors()
+    fetchServiceJobs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize])
+
+  const fetchServiceJobs = async () => {
+    try {
+      setJobsLoading(true)
+      const [ongoing, completed] = await Promise.all([
+        FleetManagerServiceJobService.getOngoingServiceJobs(),
+        FleetManagerServiceJobService.getCompletedServiceJobs(),
+      ])
+      setOngoingJobs(ongoing)
+      setCompletedJobs(completed)
+    } catch (err) {
+      console.error("Error fetching service jobs:", err)
+    } finally {
+      setJobsLoading(false)
+    }
+  }
 
   const filteredErrors = errors.filter((error) => {
     const matchesSearch =
@@ -144,6 +176,17 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
       hour: "2-digit",
       minute: "2-digit",
     })
+  }
+
+  const handleCreateServiceJob = (err: MonitoringError) => {
+    setSelectedErrorForJob(err)
+    setServiceJobDialogOpen(true)
+  }
+
+  const handleServiceJobCreated = () => {
+    // Refresh both errors and jobs lists after job creation
+    fetchErrors()
+    fetchServiceJobs()
   }
 
   if (error) {
@@ -337,12 +380,13 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                       <TableHead className="font-semibold">Driver</TableHead>
                       <TableHead className="font-semibold">Reported</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredErrors.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="py-8 text-center">
+                        <TableCell colSpan={9} className="py-8 text-center">
                           <p className={isDark ? "text-slate-400" : "text-slate-500"}>
                             No errors found matching your filters
                           </p>
@@ -412,6 +456,16 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                                 </Badge>
                               )}
                             </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => handleCreateServiceJob(errorItem)}
+                                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                <Plus className="h-3 w-3" />
+                                Create Job
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         )
                       })
@@ -447,6 +501,240 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                 </div>
               )}
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Service Job Creation Dialog */}
+      <ServiceJobCreationDialog
+        open={serviceJobDialogOpen}
+        onOpenChange={setServiceJobDialogOpen}
+        error={selectedErrorForJob}
+        isDark={isDark}
+        onCreateSuccess={handleServiceJobCreated}
+      />
+
+      {/* Ongoing Service Jobs Section */}
+      <Card className={isDark ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white"}>
+        <CardHeader className={`pb-4 ${isDark ? "border-slate-800" : "border-slate-200"} border-b`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-blue-500" />
+              <div>
+                <CardTitle>Ongoing Service Jobs</CardTitle>
+                <CardDescription>
+                  {ongoingJobs.length} job{ongoingJobs.length !== 1 ? "s" : ""} in progress
+                </CardDescription>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchServiceJobs}
+              className="gap-2"
+              disabled={jobsLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${jobsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {jobsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader className="h-6 w-6 animate-spin text-slate-400" />
+            </div>
+          ) : ongoingJobs.length === 0 ? (
+            <div className={`p-8 rounded-lg text-center ${isDark ? "bg-slate-800/50 text-slate-400" : "bg-slate-50 text-slate-600"}`}>
+              <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="font-medium">No ongoing jobs</p>
+              <p className="text-sm opacity-70">All service jobs are completed</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {ongoingJobs.map((job) => (
+                <Card key={job.id} className={`border-l-4 border-l-blue-500 ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"}`}>
+                  <CardContent className="pt-4">
+                    <div className="space-y-3">
+                      <div>
+                        <p className={`text-xs font-mono ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                          {job.jobNumber}
+                        </p>
+                        <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
+                          {job.title}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <span
+                            className={`inline-block h-2 w-2 rounded-full ${
+                              job.status === "IN_PROGRESS"
+                                ? "bg-blue-500"
+                                : "bg-yellow-500"
+                            }`}
+                          />
+                          <span className={isDark ? "text-slate-300" : "text-slate-700"}>
+                            {job.status === "IN_PROGRESS" ? "In Progress" : "Pending"}
+                          </span>
+                        </div>
+                        <Badge
+                          className={`${
+                            job.priority === "URGENT"
+                              ? "bg-red-500/20 text-red-600 dark:text-red-400"
+                              : job.priority === "HIGH"
+                              ? "bg-orange-500/20 text-orange-600 dark:text-orange-400"
+                              : job.priority === "MEDIUM"
+                              ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                              : "bg-green-500/20 text-green-600 dark:text-green-400"
+                          }`}
+                        >
+                          {job.priority}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5 text-slate-400" />
+                          <span className={isDark ? "text-slate-400" : "text-slate-600"}>
+                            {job.totalMechanics} mechanic{job.totalMechanics !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Package className="h-3.5 w-3.5 text-slate-400" />
+                          <span className={isDark ? "text-slate-400" : "text-slate-600"}>
+                            {job.totalParts} part{job.totalParts !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={`pt-2 border-t ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                            Est. Cost
+                          </span>
+                          <span className="font-semibold text-green-600">
+                            ${job.estimatedCost.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                        Vehicle: <span className="font-mono">{job.vehiclePlateNumber}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Completed Service Jobs Section */}
+      <Card className={isDark ? "border-white/10 bg-slate-900" : "border-slate-200 bg-white"}>
+        <CardHeader className={`pb-4 ${isDark ? "border-slate-800" : "border-slate-200"} border-b`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCheckIcon className="h-5 w-5 text-green-500" />
+              <div>
+                <CardTitle>Completed Service Jobs</CardTitle>
+                <CardDescription>
+                  {completedJobs.length} job{completedJobs.length !== 1 ? "s" : ""} completed
+                </CardDescription>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchServiceJobs}
+              className="gap-2"
+              disabled={jobsLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${jobsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {jobsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader className="h-6 w-6 animate-spin text-slate-400" />
+            </div>
+          ) : completedJobs.length === 0 ? (
+            <div className={`p-8 rounded-lg text-center ${isDark ? "bg-slate-800/50 text-slate-400" : "bg-slate-50 text-slate-600"}`}>
+              <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="font-medium">No completed jobs yet</p>
+              <p className="text-sm opacity-70">Completed jobs will appear here</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {completedJobs.map((job) => (
+                <Card key={job.id} className={`border-l-4 border-l-green-500 ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"}`}>
+                  <CardContent className="pt-4">
+                    <div className="space-y-3">
+                      <div>
+                        <p className={`text-xs font-mono ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                          {job.jobNumber}
+                        </p>
+                        <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>
+                          {job.title}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span className={isDark ? "text-slate-300" : "text-slate-700"}>
+                            Completed
+                          </span>
+                        </div>
+                        <Badge className="bg-green-500/20 text-green-600 dark:text-green-400">
+                          {job.priority}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5 text-slate-400" />
+                          <span className={isDark ? "text-slate-400" : "text-slate-600"}>
+                            {job.totalMechanics} mechanic{job.totalMechanics !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Package className="h-3.5 w-3.5 text-slate-400" />
+                          <span className={isDark ? "text-slate-400" : "text-slate-600"}>
+                            {job.totalParts} part{job.totalParts !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={`pt-2 border-t ${isDark ? "border-slate-700" : "border-slate-200"}`}>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                              Est. / Actual
+                            </span>
+                            <span className="font-semibold text-green-600">
+                              ${job.estimatedCost.toFixed(2)} / ${job.actualCost?.toFixed(2) || "N/A"}
+                            </span>
+                          </div>
+                          {job.completedAt && (
+                            <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                              Completed: {new Date(job.completedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                        Vehicle: <span className="font-mono">{job.vehiclePlateNumber}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
