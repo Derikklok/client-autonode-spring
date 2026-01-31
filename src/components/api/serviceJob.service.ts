@@ -107,4 +107,26 @@ export const FleetManagerServiceJobService = {
     )
     return response.data
   },
+
+  completeServiceJob: async (
+    jobId: string,
+    completionNotes?: string,
+    actualCost?: number
+  ): Promise<ServiceJob> => {
+    const payload: Record<string, string | number> = {}
+    
+    if (completionNotes && completionNotes.trim()) {
+      payload.completionNotes = completionNotes
+    }
+    
+    if (actualCost !== undefined && actualCost >= 0) {
+      payload.actualCost = actualCost
+    }
+
+    const response = await httpClient.patch<ServiceJob>(
+      `/api/fleet-manager/service-jobs/${jobId}/complete`,
+      payload
+    )
+    return response.data
+  },
 }

@@ -46,6 +46,7 @@ import {
 import { FleetManagerMonitoringService } from "@/components/api/monitoring.service"
 import { FleetManagerServiceJobService } from "@/components/api/serviceJob.service"
 import { ServiceJobCreationDialog } from "./ServiceJobCreationDialog"
+import { ServiceJobDetailDialog } from "./ServiceJobDetailDialog"
 import type { MonitoringError, ErrorSeverity } from "@/types/monitoring.types"
 import type { ServiceJob } from "@/types/serviceJob.types"
 
@@ -63,6 +64,8 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
   const [totalElements, setTotalElements] = useState(0)
   const [serviceJobDialogOpen, setServiceJobDialogOpen] = useState(false)
   const [selectedErrorForJob, setSelectedErrorForJob] = useState<MonitoringError | null>(null)
+  const [jobDetailDialogOpen, setJobDetailDialogOpen] = useState(false)
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   
   // Service Jobs state
   const [ongoingJobs, setOngoingJobs] = useState<ServiceJob[]>([])
@@ -187,6 +190,11 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
     // Refresh both errors and jobs lists after job creation
     fetchErrors()
     fetchServiceJobs()
+  }
+
+  const handleViewJobDetails = (jobId: string) => {
+    setSelectedJobId(jobId)
+    setJobDetailDialogOpen(true)
   }
 
   if (error) {
@@ -386,7 +394,7 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                   <TableBody>
                     {filteredErrors.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="py-8 text-center">
+                        <TableCell colSpan={10} className="py-8 text-center">
                           <p className={isDark ? "text-slate-400" : "text-slate-500"}>
                             No errors found matching your filters
                           </p>
@@ -444,15 +452,20 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                               {formatDate(errorItem.reportedAt)}
                             </TableCell>
                             <TableCell>
-                              {errorItem.resolved ? (
+                              {errorItem.status === "IN_SERVICE" ? (
+                                <Badge className="border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 gap-1">
+                                  <Loader className="h-3 w-3" />
+                                  In Service
+                                </Badge>
+                              ) : errorItem.status === "RESOLVED" ? (
                                 <Badge className="border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 gap-1">
                                   <CheckCircle className="h-3 w-3" />
                                   Resolved
                                 </Badge>
                               ) : (
-                                <Badge className="border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 gap-1">
+                                <Badge className="border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 gap-1">
                                   <AlertCircle className="h-3 w-3" />
-                                  Active
+                                  Pending
                                 </Badge>
                               )}
                             </TableCell>
@@ -460,7 +473,9 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                               <Button
                                 size="sm"
                                 onClick={() => handleCreateServiceJob(errorItem)}
-                                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+                                disabled={errorItem.status === "IN_SERVICE" || errorItem.status === "RESOLVED"}
+                                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={errorItem.status === "IN_SERVICE" ? "Service job already in progress" : errorItem.status === "RESOLVED" ? "Error has been resolved" : "Create a new service job"}
                               >
                                 <Plus className="h-3 w-3" />
                                 Create Job
@@ -553,7 +568,11 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {ongoingJobs.map((job) => (
-                <Card key={job.id} className={`border-l-4 border-l-blue-500 ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"}`}>
+                <Card
+                  key={job.id}
+                  className={`border-l-4 border-l-blue-500 cursor-pointer transition-all hover:shadow-md ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"}`}
+                  onClick={() => handleViewJobDetails(job.id)}
+                >
                   <CardContent className="pt-4">
                     <div className="space-y-3">
                       <div>
@@ -622,6 +641,18 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                       <div className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                         Vehicle: <span className="font-mono">{job.vehiclePlateNumber}</span>
                       </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewJobDetails(job.id)
+                        }}
+                      >
+                        View Details
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -670,7 +701,11 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {completedJobs.map((job) => (
-                <Card key={job.id} className={`border-l-4 border-l-green-500 ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"}`}>
+                <Card
+                  key={job.id}
+                  className={`border-l-4 border-l-green-500 cursor-pointer transition-all hover:shadow-md ${isDark ? "bg-slate-800/50 border-slate-700" : "bg-slate-50 border-slate-200"}`}
+                  onClick={() => handleViewJobDetails(job.id)}
+                >
                   <CardContent className="pt-4">
                     <div className="space-y-3">
                       <div>
@@ -730,6 +765,18 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
                       <div className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>
                         Vehicle: <span className="font-mono">{job.vehiclePlateNumber}</span>
                       </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewJobDetails(job.id)
+                        }}
+                      >
+                        View Details
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -738,6 +785,22 @@ export function FleetManagerServiceJobs({ isDark }: { isDark: boolean }) {
           )}
         </CardContent>
       </Card>
+
+      <ServiceJobCreationDialog
+        open={serviceJobDialogOpen}
+        onOpenChange={setServiceJobDialogOpen}
+        error={selectedErrorForJob}
+        isDark={isDark}
+        onCreateSuccess={handleServiceJobCreated}
+      />
+
+      <ServiceJobDetailDialog
+        open={jobDetailDialogOpen}
+        onOpenChange={setJobDetailDialogOpen}
+        jobId={selectedJobId}
+        isDark={isDark}
+        onJobCompleted={handleServiceJobCreated}
+      />
     </div>
   )
 }

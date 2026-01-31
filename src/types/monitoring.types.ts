@@ -1,4 +1,5 @@
 export type ErrorSeverity = "CRITICAL" | "MODERATE" | "LOW"
+export type ErrorStatus = "PENDING" | "IN_SERVICE" | "RESOLVED"
 export type VehicleStatus = "ACTIVE" | "INACTIVE" | "MAINTENANCE"
 export type Subsystem = 
   | "ENGINE"
@@ -17,18 +18,19 @@ export interface MonitoringError {
   title: string
   description: string
   severity: ErrorSeverity
+  status: ErrorStatus | null
   subsystem: Subsystem
   reportedAt: string
-  resolved: boolean
+  resolved: boolean | null
   resolvedAt: string | null
   // Vehicle Information
   vehicleId: string
   plateNumber: string
   manufacturer: string
   model: string
-  year: number
+  year: number | null
   color: string
-  status: VehicleStatus
+  vehicleStatus: VehicleStatus
   imageUrl: string
   currentMileage: number
   serviceMileage: number
